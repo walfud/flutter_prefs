@@ -12,31 +12,18 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  String _platformVersion = 'Unknown';
+  String _inputKey = '', _inputValue = '';
+  String _output = '';
+  List<String> _tips = [];
+  Prefs _prefs;
 
   @override
   void initState() {
     super.initState();
-    initPlatformState();
-  }
 
-  // Platform messages are asynchronous, so we initialize in an async method.
-  Future<void> initPlatformState() async {
-    String platformVersion;
-    // Platform messages may fail, so we use a try/catch PlatformException.
-    try {
-      platformVersion = await Prefs.platformVersion;
-    } on PlatformException {
-      platformVersion = 'Failed to get platform version.';
-    }
-
-    // If the widget was removed from the tree while the asynchronous platform
-    // message was in flight, we want to discard the reply rather than calling
-    // setState to update our non-existent appearance.
-    if (!mounted) return;
-
+    _prefs = Prefs.defaultInstance();
     setState(() {
-      _platformVersion = platformVersion;
+      _tips.add('Start');
     });
   }
 
@@ -48,7 +35,79 @@ class _MyAppState extends State<MyApp> {
           title: const Text('Plugin example app'),
         ),
         body: Center(
-          child: Text('Running on: $_platformVersion\n'),
+          child: Column(
+            children: <Widget>[
+              // Input
+              Row(
+                children: <Widget>[
+                  Expanded(
+                      child: Row(
+                    children: <Widget>[
+                      TextField(
+                        onChanged: (input) {
+                          _inputKey = input;
+                        },
+                      ),
+                      TextField(
+                        onChanged: (input) {
+                          _inputValue = input;
+                        },
+                      ),
+                    ],
+                  )),
+                  Column(
+                    children: <Widget>[
+                      RaisedButton(
+                        child: Text('Set'),
+                        onPressed: () {
+                          var tip = '<<<<< Set';
+                          var start = DateTime.now();
+                          _prefs.setValue(_inputKey, _inputValue);
+                          var end = DateTime.now();
+                          var cost = end.microsecondsSinceEpoch - start.microsecondsSinceEpoch;
+                          tip += '\n>>>>> Set';
+                          setState(() {
+                            _tips.add(tip);
+                          });
+                        },
+                      ),
+                      RaisedButton(
+                        child: Text('Get'),
+                        onPressed: () {
+                          var tip = '<<<<< Get';
+                          var start = DateTime.now();
+                          _output = _prefs.getValue(_inputKey);
+                          var end = DateTime.now();
+                          var cost = end.microsecondsSinceEpoch - start.microsecondsSinceEpoch;
+                          tip += '\n>>>>> Get';
+                          setState(() {
+                            _tips.add(tip);
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+
+              // Output
+              Text(
+                _output,
+              ),
+
+              // Tip
+              ListView.separated(
+                itemBuilder: (BuildContext context, int index) {
+                  var tip = _tips[_tips.length - 1];
+                  return Text(tip);
+                },
+                separatorBuilder: (BuildContext context, int index) {
+                  return Divider(height: 1);
+                },
+                itemCount: _tips.length,
+              ),
+            ],
+          ),
         ),
       ),
     );

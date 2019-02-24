@@ -1,8 +1,8 @@
 name: prefs
-description: A new flutter plugin project.
+description: Flutter plugin for reading & writting key-value data effectively(memory cache) and persistently(disk).
 version: 0.0.1
-author:
-homepage:
+author: walfud
+homepage: https://github.com/walfud/flutter_prefs
 
 environment:
   sdk: ">=2.0.0-dev.68.0 <3.0.0"
