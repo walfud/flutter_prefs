@@ -23,6 +23,9 @@ class _MyAppState extends State<MyApp> {
 
     _prefs = Prefs.defaultInstance();
     setState(() {
+      _inputKey = 'foo';
+      _inputValue = '1234';
+
       _tips.add('Start');
     });
   }
@@ -34,71 +37,75 @@ class _MyAppState extends State<MyApp> {
         appBar: AppBar(
           title: const Text('Plugin example app'),
         ),
-        body: Center(
-          child: Column(
-            children: <Widget>[
-              // Input
-              Row(
-                children: <Widget>[
-                  Expanded(
-                      child: Row(
-                    children: <Widget>[
-                      TextField(
-                        onChanged: (input) {
-                          _inputKey = input;
-                        },
-                      ),
-                      TextField(
-                        onChanged: (input) {
-                          _inputValue = input;
-                        },
-                      ),
-                    ],
-                  )),
-                  Column(
-                    children: <Widget>[
-                      RaisedButton(
-                        child: Text('Set'),
-                        onPressed: () {
-                          var tip = '<<<<< Set';
-                          var start = DateTime.now();
-                          _prefs.setValue(_inputKey, _inputValue);
-                          var end = DateTime.now();
-                          var cost = end.microsecondsSinceEpoch - start.microsecondsSinceEpoch;
-                          tip += '\n>>>>> Set';
-                          setState(() {
-                            _tips.add(tip);
-                          });
-                        },
-                      ),
-                      RaisedButton(
-                        child: Text('Get'),
-                        onPressed: () {
-                          var tip = '<<<<< Get';
-                          var start = DateTime.now();
-                          _output = _prefs.getValue(_inputKey);
-                          var end = DateTime.now();
-                          var cost = end.microsecondsSinceEpoch - start.microsecondsSinceEpoch;
-                          tip += '\n>>>>> Get';
-                          setState(() {
-                            _tips.add(tip);
-                          });
-                        },
-                      ),
-                    ],
+        body: Column(
+          children: <Widget>[
+            // Input
+            Row(
+              children: <Widget>[
+                Expanded(
+                  flex: 4,
+                  child: TextField(
+                    onChanged: (input) {
+                      _inputKey = input;
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'key: foo.bar',
+                    ),
                   ),
-                ],
-              ),
+                ),
+                Spacer(flex: 1),
+                Expanded(
+                  flex: 4,
+                  child: TextField(
+                    onChanged: (input) {
+                      _inputValue = input;
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'value: 1234',
+                    ),
+                  ),
+                ),
+                Column(
+                  children: <Widget>[
+                    RaisedButton(
+                      child: Text('Set'),
+                      onPressed: () {
+                        var start = DateTime.now();
+                        _prefs.setValue(_inputKey, _inputValue);
+                        var end = DateTime.now();
+                        var cost = end.microsecondsSinceEpoch - start.microsecondsSinceEpoch;
+                        setState(() {
+                          _tips.add('set: cost $cost microsecond');
+                        });
+                      },
+                    ),
+                    RaisedButton(
+                      child: Text('Get'),
+                      onPressed: () {
+                        var start = DateTime.now();
+                        var res = _prefs.getValue(_inputKey);
+                        var end = DateTime.now();
+                        var cost = end.microsecondsSinceEpoch - start.microsecondsSinceEpoch;
+                        setState(() {
+                          _tips.add('get($res): cost: $cost microsecond');
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
 
-              // Output
-              Text(
-                _output,
-              ),
+            // Output
+            Text(
+              _output,
+            ),
 
-              // Tip
-              ListView.separated(
+            // Tip
+            Expanded(
+              child: ListView.separated(
                 itemBuilder: (BuildContext context, int index) {
-                  var tip = _tips[_tips.length - 1];
+                  var tip = _tips[_tips.length - 1 - index];
                   return Text(tip);
                 },
                 separatorBuilder: (BuildContext context, int index) {
@@ -106,8 +113,8 @@ class _MyAppState extends State<MyApp> {
                 },
                 itemCount: _tips.length,
               ),
-            ],
-          ),
+            )
+          ],
         ),
       ),
     );

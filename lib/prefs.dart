@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 class Prefs {
   static const MethodChannel _channel = const MethodChannel('prefs');
+  static const String _spliter = '.';
 
   static Prefs _sInstance;
   static Prefs defaultInstance() {
@@ -17,10 +18,40 @@ class Prefs {
   String name;
   Prefs(this.name);
 
-  Map<String, Object> cache = new Map();
+  Map<String, Object> cache = new Map<String, Object>();
   void setValue(String key, Object value) {
+    if (key == null || key.isEmpty) {
+      throw ArgumentError('`key` MUST NOT empty');
+    }
+
+    final keys = key.split(_spliter);
+
+    // Construct path
+    Map<String, Object> currTable = cache;
+    for (var path in keys.sublist(0, keys.length - 1)) {
+      if (currTable[path] == null) {
+        // New Path
+        currTable[path] = new Map<String, Object>();
+
+      } else if (currTable[path].runtimeType != Map) {
+        // Transform leaf to path
+        // Save leaf value with empty key
+        final oldValue = currTable[path];
+        final table = new Map<String, Object>();
+        table[null] = oldValue;
+        currTable[path] = table;
+      }
+
+      currTable = currTable[path];
+    }
+
+    // Mount value on leaf
+    String leaf = keys.last;
+    currTable[leaf] = value;
+
     return;
   }
+
   Object getValue(String key) {
     return null;
   }
