@@ -29,17 +29,9 @@ class Prefs {
     // Construct path
     Map<String, Object> currTable = cache;
     for (var path in keys.sublist(0, keys.length - 1)) {
-      if (currTable[path] == null) {
-        // New Path
+      if (currTable[path]?.runtimeType != Map) {
+        // New path or Overwrite original leaf
         currTable[path] = new Map<String, Object>();
-
-      } else if (currTable[path].runtimeType != Map) {
-        // Transform leaf to path
-        // Save leaf value with empty key
-        final oldValue = currTable[path];
-        final table = new Map<String, Object>();
-        table[null] = oldValue;
-        currTable[path] = table;
       }
 
       currTable = currTable[path];
