@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:sqflite/sqflite.dart';
 
 class Prefs {
   static const String _spliter = '.';
@@ -13,8 +14,24 @@ class Prefs {
   }
 
   String name;
-  Prefs(this.name) {
-    // TODO: sqlite read
+  Prefs(this.name);
+
+  Future<void> initialize() async {
+    Database db = await openDatabase('prefs.db', version: 1, onCreate: (Database dbOnCreate, int version) async {
+      // Prefernece table
+      await dbOnCreate.execute("""
+        CREATE TABLE `data`(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+          domain TEXT,
+          path TEXT,
+          valueType INTEGER,
+          valueData TEXT
+        );
+      """);
+    });
+
+    return Future.value(null);
   }
 
   Map<String, Object> cache = new Map<String, Object>();

@@ -2,11 +2,13 @@ import 'package:test/test.dart';
 import 'package:prefs/prefs.dart';
 
 void main() {
-  group('Prefs', () {
+  group('Memory Prefs', () {
     Prefs prefs;
 
     setUp(() async {
       prefs = Prefs.defaultInstance();
+      await prefs.initialize();
+      print('asdf');
     });
 
     tearDown(() {});
