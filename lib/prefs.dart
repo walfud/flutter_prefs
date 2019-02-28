@@ -3,6 +3,26 @@ import 'package:sqflite/sqflite.dart';
 
 class Prefs {
   static const String _spliter = '.';
+  static Database _db;
+
+  static void initialize() async {
+    _db = await openDatabase('prefs.db', version: 1,
+        onCreate: (Database dbOnCreate, int version) async {
+      // Prefernece table
+      await dbOnCreate.execute("""
+        CREATE TABLE `data`(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+          domain TEXT,
+          key TEXT,
+          value TEXT,
+          valueType INTEGER
+        );
+      """);
+    });
+
+    return Future.value(null);
+  }
 
   static Prefs _sInstance;
   static Prefs defaultInstance() {
@@ -15,24 +35,6 @@ class Prefs {
 
   String name;
   Prefs(this.name);
-
-  Future<void> initialize() async {
-    Database db = await openDatabase('prefs.db', version: 1, onCreate: (Database dbOnCreate, int version) async {
-      // Prefernece table
-      await dbOnCreate.execute("""
-        CREATE TABLE `data`(
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-          domain TEXT,
-          path TEXT,
-          valueType INTEGER,
-          valueData TEXT
-        );
-      """);
-    });
-
-    return Future.value(null);
-  }
 
   Map<String, Object> cache = new Map<String, Object>();
   Future<Object> setValue(String key, Object value) {
@@ -53,9 +55,19 @@ class Prefs {
     String leaf = path.last;
     currTable[leaf] = value;
 
-    // TODO: sqlite write
-
-    return new Future.value(null);
+    // Persist
+    return _db.update(
+      'data',
+      {
+        'value': value,
+        'valueType': _getValueType(value),
+      },
+      where: 'domain=? AND key=?',
+      whereArgs: [name, key],
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    ).then((affectedRowCount) {
+      print(affectedRowCount);
+    });
   }
 
   Object getValue(String key) {
@@ -70,7 +82,7 @@ class Prefs {
       }
 
       currTable = currTable[i];
-    } 
+    }
 
     String leaf = path.last;
     return currTable[leaf];
@@ -82,5 +94,16 @@ class Prefs {
     }
 
     return key.split(_spliter);
+  }
+
+  // Utils
+  static int _getValueType(Object value) {
+    if (value is int || value is double) {
+      return 1;
+    } else if (value is String) {
+      return 2;
+    } else {
+      return 0;
+    }
   }
 }

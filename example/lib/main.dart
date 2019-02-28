@@ -4,7 +4,10 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:prefs/prefs.dart';
 
-void main() => runApp(MyApp());
+void main() async {
+  await Prefs.initialize();
+  runApp(MyApp());
+}
 
 class MyApp extends StatefulWidget {
   @override
@@ -69,13 +72,16 @@ class _MyAppState extends State<MyApp> {
                   children: <Widget>[
                     RaisedButton(
                       child: Text('Set'),
-                      onPressed: () {
+                      onPressed: () async {
                         var start = DateTime.now();
-                        _prefs.setValue(_inputKey, _inputValue);
+                        Future<void> res = _prefs.setValue(_inputKey, _inputValue);
                         var end = DateTime.now();
+                        await res;
+                        var awaitEnd = DateTime.now();
                         var cost = end.microsecondsSinceEpoch - start.microsecondsSinceEpoch;
+                        var awaitCost = awaitEnd.microsecondsSinceEpoch - start.microsecondsSinceEpoch;
                         setState(() {
-                          _tips.add('set: cost $cost microsecond');
+                          _tips.add('set: cost $cost microsecond, persist cost $awaitCost microsecond');
                         });
                       },
                     ),
