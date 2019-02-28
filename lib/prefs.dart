@@ -33,11 +33,11 @@ class Prefs {
     return _sInstance;
   }
 
-  String name;
-  Prefs(this.name);
+  String _name;
+  Prefs(this._name);
 
   Map<String, Object> cache = new Map<String, Object>();
-  Future<Object> setValue(String key, Object value) {
+  Future<T> setValue<T>(String key, T value) {
     var path = _parsePath(key);
 
     // Construct path table
@@ -56,21 +56,26 @@ class Prefs {
     currTable[leaf] = value;
 
     // Persist
-    return _db.update(
-      'data',
-      {
-        'value': value,
-        'valueType': _getValueType(value),
-      },
-      where: 'domain=? AND key=?',
-      whereArgs: [name, key],
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    ).then((affectedRowCount) {
-      print(affectedRowCount);
+    return _db.transaction((Transaction txn) {
+      txn.delete(
+        'data',
+        where: "domain=? AND key REGEXP '^$key(\..*)?\$'",
+        whereArgs: [_name, key],
+      );
+
+      txn.insert(
+        'data',
+        {
+          'domain': _name,
+          'key': key,
+          'value': value,
+          'valueType': _getValueType(value),
+        },
+      );
     });
   }
 
-  Object getValue(String key) {
+  T getValue<T>(String key) {
     var path = _parsePath(key);
 
     //
