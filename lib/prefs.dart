@@ -56,14 +56,14 @@ class Prefs {
     currTable[leaf] = value;
 
     // Persist
-    return _db.transaction((Transaction txn) {
-      txn.delete(
+    return _db.transaction((Transaction txn) async {
+      await txn.delete(
         'data',
         where: "domain=? AND key REGEXP '^$key(\..*)?\$'",
         whereArgs: [_name, key],
       );
 
-      txn.insert(
+      await txn.insert(
         'data',
         {
           'domain': _name,
