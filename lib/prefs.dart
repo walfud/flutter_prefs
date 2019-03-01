@@ -31,6 +31,8 @@ class Prefs {
       ''');
     });
 
+    // TODO: load
+
     return Future.value(null);
   }
 
@@ -46,12 +48,12 @@ class Prefs {
   String _name;
   Prefs(this._name);
 
-  Map<String, Object> cache = new Map<String, Object>();
+  Map<String, Object> _cache = new Map<String, Object>();
   Future<T> setValue<T>(String key, T value) {
     var path = _parsePath(key);
 
     // Construct path table
-    Map<String, Object> currTable = cache;
+    Map<String, Object> currTable = _acquireTable();
     for (var i in path.sublist(0, path.length - 1)) {
       if (currTable[i] is! Map) {
         // New path or Overwrite original leaf
@@ -93,7 +95,7 @@ class Prefs {
     var path = _parsePath(key);
 
     //
-    Map<String, Object> currTable = cache;
+    Map<String, Object> currTable = _acquireTable();
     for (var i in path.sublist(0, path.length - 1)) {
       if (currTable[i] is! Map) {
         // New path or Overwrite original leaf
@@ -116,6 +118,14 @@ class Prefs {
   }
 
   // Utils
+  Map<String, Object> _acquireTable() {
+    if (_cache[_name] == null) {
+      _cache[_name] = new Map<String, Object>();
+    }
+
+    return _cache[_name];
+  }
+
   static int _getValueType(Object value) {
     if (value is int) {
       return intValueType;

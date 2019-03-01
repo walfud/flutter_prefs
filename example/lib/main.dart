@@ -92,6 +92,7 @@ class _MyAppState extends State<MyApp> {
                         var end = DateTime.now();
                         var cost = end.microsecondsSinceEpoch - start.microsecondsSinceEpoch;
                         setState(() {
+                          _output = res;
                           _tips.add('get($res): cost: $cost microsecond');
                         });
                       },
