@@ -52,7 +52,7 @@ class Prefs {
     });
 
     // Load
-    final rows = await _db.query('data', where: 'domain=?', whereArgs: [_name]);
+    final rows = await _db.query('data', where: 'domain=?', whereArgs: [_name], orderBy: 'id ASC');
     for (var row in rows) {
       String key = row['key'];
       Object value = row['value'];
