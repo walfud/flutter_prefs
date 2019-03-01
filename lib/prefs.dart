@@ -7,10 +7,10 @@ class Prefs {
 
   // Value type
   static int unknownValueType = 0;
-  static int intValueType     = 1;
-  static int floatValueType   = 2;
-  static int stringValueType  = 3;
-  static int binaryValueType  = 4;
+  static int intValueType = 1;
+  static int floatValueType = 2;
+  static int stringValueType = 3;
+  static int binaryValueType = 4;
 
   static Future<void> initialize() async {
     _db = await openDatabase('prefs.db', version: 1,
@@ -62,28 +62,31 @@ class Prefs {
     }
 
     // Mount value on leaf
-    String leaf = path.last;
+    var leaf = path.last;
+    var originValue = currTable[leaf];
     currTable[leaf] = value;
 
     // Persist
-    return _db.transaction((Transaction txn) async {
-      var domainCond = _name == null ? 'domain IS ?' : 'domain=?';
-      await txn.delete(
-        'data',
-        where: '$domainCond AND key like ?',
-        whereArgs: [_name, '$key%'],
-      );
+    return originValue == value
+        ? Future.value(null)
+        : _db.transaction((Transaction txn) async {
+            var domainCond = _name == null ? 'domain IS ?' : 'domain=?';
+            await txn.delete(
+              'data',
+              where: '$domainCond AND key like ?',
+              whereArgs: [_name, '$key%'],
+            );
 
-      await txn.insert(
-        'data',
-        {
-          'domain': _name,
-          'key': key,
-          'value': value,
-          'valueType': _getValueType(value),
-        },
-      );
-    });
+            await txn.insert(
+              'data',
+              {
+                'domain': _name,
+                'key': key,
+                'value': value,
+                'valueType': _getValueType(value),
+              },
+            );
+          });
   }
 
   T getValue<T>(String key) {
@@ -120,8 +123,8 @@ class Prefs {
       return floatValueType;
     } else if (value is String) {
       return stringValueType;
-    // } else if (value is ) {
-    //   return binaryValueType;
+      // } else if (value is ) {
+      //   return binaryValueType;
     } else {
       return unknownValueType;
     }
