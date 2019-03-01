@@ -3,10 +3,7 @@ import 'dart:async';
 
 import 'package:prefs/prefs.dart';
 
-void main() async {
-  await Prefs.initialize();
-  runApp(MyApp());
-}
+void main() => runApp(MyApp());
 
 class MyApp extends StatefulWidget {
   @override
@@ -23,12 +20,15 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
 
-    _prefs = Prefs.defaultInstance();
-    setState(() {
-      _inputKey = 'foo';
-      _inputValue = '1234';
+    Prefs.defaultInstance().then((prefs) {
+      _prefs = prefs;
 
-      _tips.add('Start');
+      setState(() {
+        _inputKey = 'foo';
+        _inputValue = '1234';
+
+        _tips.add('Start');
+      });
     });
   }
 
@@ -73,14 +73,18 @@ class _MyAppState extends State<MyApp> {
                       child: Text('Set'),
                       onPressed: () async {
                         var start = DateTime.now();
-                        Future<void> res = _prefs.setValue(_inputKey, _inputValue);
+                        Future<void> res =
+                            _prefs.setValue(_inputKey, _inputValue);
                         var end = DateTime.now();
                         await res;
                         var awaitEnd = DateTime.now();
-                        var cost = end.microsecondsSinceEpoch - start.microsecondsSinceEpoch;
-                        var awaitCost = awaitEnd.microsecondsSinceEpoch - start.microsecondsSinceEpoch;
+                        var cost = end.microsecondsSinceEpoch -
+                            start.microsecondsSinceEpoch;
+                        var awaitCost = awaitEnd.microsecondsSinceEpoch -
+                            start.microsecondsSinceEpoch;
                         setState(() {
-                          _tips.add('set: cost $cost microsecond, persist cost $awaitCost microsecond');
+                          _tips.add(
+                              'set: cost $cost microsecond, persist cost $awaitCost microsecond');
                         });
                       },
                     ),
@@ -90,7 +94,8 @@ class _MyAppState extends State<MyApp> {
                         var start = DateTime.now();
                         var res = _prefs.getValue(_inputKey);
                         var end = DateTime.now();
-                        var cost = end.microsecondsSinceEpoch - start.microsecondsSinceEpoch;
+                        var cost = end.microsecondsSinceEpoch -
+                            start.microsecondsSinceEpoch;
                         setState(() {
                           _output = res;
                           _tips.add('get($res): cost: $cost microsecond');

@@ -3,16 +3,35 @@ import 'package:sqflite/sqflite.dart';
 
 class Prefs {
   static const String _spliter = '.';
-  static Database _db;
 
   // Value type
-  static int unknownValueType = 0;
-  static int intValueType = 1;
-  static int floatValueType = 2;
-  static int stringValueType = 3;
-  static int binaryValueType = 4;
+  static const int unknownValueType = 0;
+  static const int intValueType = 1;
+  static const int floatValueType = 2;
+  static const int stringValueType = 3;
+  static const int binaryValueType = 4;
 
-  static Future<void> initialize() async {
+  // Factory
+  // We maintain a static instance map for both effeciency and consistency
+  static Map<String, Prefs> _instanceMap = {};
+  static Future<Prefs> defaultInstance() => getInstance();
+  static Future<Prefs> getInstance([String name = '']) async {
+    name = name ?? '';
+    if (_instanceMap[name] == null) {
+      _instanceMap[name] = new Prefs._internal(name);
+      await _instanceMap[name]._initialize();
+    }
+
+    return _instanceMap[name];
+  }
+
+  // Private constructor
+  String _name;
+  Prefs._internal(this._name);
+
+  Database _db;
+  Map<String, Object> _cache = new Map<String, Object>();
+  Future<void> _initialize() async {
     _db = await openDatabase('prefs.db', version: 1,
         onCreate: (Database dbOnCreate, int version) async {
       await dbOnCreate.execute('''
@@ -31,51 +50,44 @@ class Prefs {
       ''');
     });
 
-    // TODO: load
+    // Load
+    final rows = await _db.query('data', where: 'domain=?', whereArgs: [_name]);
+    for (var row in rows) {
+      String key = row['key'];
+      Object value = row['value'];
+      int valueType = row['valueType'];
+      switch (valueType) {
+        case intValueType:
+          _setCacheValue(key, value as int);
+          break;
+        case floatValueType:
+          _setCacheValue(key, value as double);
+          break;
+        case stringValueType:
+          _setCacheValue(key, value as String);
+          break;
+          // case binaryValueType:
+          //   _setCacheValue(key, value as );
+          break;
+        default:
+          break;
+      }
+    }
 
     return Future.value(null);
   }
 
-  static Prefs _sInstance;
-  static Prefs defaultInstance() {
-    if (_sInstance == null) {
-      _sInstance = new Prefs(null);
-    }
-
-    return _sInstance;
-  }
-
-  String _name;
-  Prefs(this._name);
-
-  Map<String, Object> _cache = new Map<String, Object>();
   Future<T> setValue<T>(String key, T value) {
-    var path = _parsePath(key);
-
-    // Construct path table
-    Map<String, Object> currTable = _acquireTable();
-    for (var i in path.sublist(0, path.length - 1)) {
-      if (currTable[i] is! Map) {
-        // New path or Overwrite original leaf
-        currTable[i] = new Map<String, Object>();
-      }
-
-      currTable = currTable[i];
-    }
-
-    // Mount value on leaf
-    var leaf = path.last;
-    var originValue = currTable[leaf];
-    currTable[leaf] = value;
+    // Cache
+    final originValue = _setCacheValue(key, value);
 
     // Persist
     return originValue == value
         ? Future.value(null)
         : _db.transaction((Transaction txn) async {
-            var domainCond = _name == null ? 'domain IS ?' : 'domain=?';
             await txn.delete(
               'data',
-              where: '$domainCond AND key like ?',
+              where: 'domain=? AND key like ?',
               whereArgs: [_name, '$key%'],
             );
 
@@ -91,11 +103,33 @@ class Prefs {
           });
   }
 
+  Object _setCacheValue<T>(String key, T value) {
+    final path = _parsePath(key);
+
+    // Construct path table
+    Map<String, Object> currTable = _cache;
+    for (var i in path.sublist(0, path.length - 1)) {
+      if (currTable[i] is! Map) {
+        // New path or Overwrite original leaf
+        currTable[i] = new Map<String, Object>();
+      }
+
+      currTable = currTable[i];
+    }
+
+    // Mount value on leaf
+    final leaf = path.last;
+    final originValue = currTable[leaf];
+    currTable[leaf] = value;
+
+    return originValue;
+  }
+
   T getValue<T>(String key) {
-    var path = _parsePath(key);
+    final path = _parsePath(key);
 
     //
-    Map<String, Object> currTable = _acquireTable();
+    Map<String, Object> currTable = _cache;
     for (var i in path.sublist(0, path.length - 1)) {
       if (currTable[i] is! Map) {
         // New path or Overwrite original leaf
@@ -118,14 +152,6 @@ class Prefs {
   }
 
   // Utils
-  Map<String, Object> _acquireTable() {
-    if (_cache[_name] == null) {
-      _cache[_name] = new Map<String, Object>();
-    }
-
-    return _cache[_name];
-  }
-
   static int _getValueType(Object value) {
     if (value is int) {
       return intValueType;

@@ -6,7 +6,7 @@ void main() {
     Prefs prefs;
 
     setUp(() async {
-      prefs = Prefs.defaultInstance();
+      prefs = await Prefs.defaultInstance();
       // await prefs.initialize();    // not support: https://github.com/tekartik/sqflite/issues/83 
       print('asdf');
     });
