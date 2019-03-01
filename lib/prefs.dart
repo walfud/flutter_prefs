@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:sqflite/sqflite.dart';
+import 'package:tuple/tuple.dart';
 
 class Prefs {
   static const String _spliter = '.';
@@ -79,12 +80,23 @@ class Prefs {
 
   Future<T> setValue<T>(String key, T value) {
     // Cache
-    final originValue = _setCacheValue(key, value);
-
+    final originValueAndRemovedKeys = _setCacheValue(key, value);
+    final removedPrefixPaths = originValueAndRemovedKeys.item1;
+    final originValue = originValueAndRemovedKeys.item2;
     // Persist
-    return originValue == value
+    return originValue == value && removedPrefixPaths.isEmpty
         ? Future.value(null)
         : _db.transaction((Transaction txn) async {
+            // Remove prefix path
+            await Future.forEach(
+                removedPrefixPaths,
+                (removedKey) => txn.delete(
+                      'data',
+                      where: 'domain=? AND key=?',
+                      whereArgs: [_name, removedKey],
+                    ));
+
+            // Remove postfix path
             await txn.delete(
               'data',
               where: 'domain=? AND key like ?',
@@ -103,34 +115,45 @@ class Prefs {
           });
   }
 
-  Object _setCacheValue<T>(String key, T value) {
-    final path = _parsePath(key);
+  Tuple2<List<String>, Object> _setCacheValue<T>(String key, T value) {
+    List<String> removedPrefixPaths = [];
+
+    final pathAndLeaf = _parsePathAndLeaf(key);
 
     // Construct path table
     Map<String, Object> currTable = _cache;
-    for (var i in path.sublist(0, path.length - 1)) {
-      if (currTable[i] is! Map) {
-        // New path or Overwrite original leaf
+    List<String> passby = [];
+    final path = pathAndLeaf.item1;
+    for (var i in path) {
+      passby.add(i);
+
+      if (currTable[i] == null) {
+        // New path
         currTable[i] = new Map<String, Object>();
+      } else if (currTable[i] is! Map) {
+        // Overwrite original leaf
+        currTable[i] = new Map<String, Object>();
+        removedPrefixPaths.add(passby.join(_spliter));
       }
 
       currTable = currTable[i];
     }
 
     // Mount value on leaf
-    final leaf = path.last;
+    final leaf = pathAndLeaf.item2;
     final originValue = currTable[leaf];
     currTable[leaf] = value;
 
-    return originValue;
+    return new Tuple2(removedPrefixPaths, originValue);
   }
 
   T getValue<T>(String key) {
-    final path = _parsePath(key);
+    final pathAndLeaf = _parsePathAndLeaf(key);
 
     //
     Map<String, Object> currTable = _cache;
-    for (var i in path.sublist(0, path.length - 1)) {
+    final path = pathAndLeaf.item1;
+    for (var i in path) {
       if (currTable[i] is! Map) {
         // New path or Overwrite original leaf
         return null;
@@ -139,16 +162,17 @@ class Prefs {
       currTable = currTable[i];
     }
 
-    String leaf = path.last;
+    String leaf = pathAndLeaf.item2;
     return currTable[leaf];
   }
 
-  List<String> _parsePath(String key) {
+  Tuple2<List<String>, String> _parsePathAndLeaf(String key) {
     if (key == null || key.isEmpty) {
       throw ArgumentError('`key` MUST NOT empty');
     }
 
-    return key.split(_spliter);
+    final nodes = key.split(_spliter);
+    return new Tuple2(nodes.sublist(0, nodes.length - 1), nodes.last);
   }
 
   // Utils
