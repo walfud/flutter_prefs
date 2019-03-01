@@ -5,11 +5,17 @@ class Prefs {
   static const String _spliter = '.';
   static Database _db;
 
-  static void initialize() async {
+  // Value type
+  static int unknownValueType = 0;
+  static int intValueType     = 1;
+  static int floatValueType   = 2;
+  static int stringValueType  = 3;
+  static int binaryValueType  = 4;
+
+  static Future<void> initialize() async {
     _db = await openDatabase('prefs.db', version: 1,
         onCreate: (Database dbOnCreate, int version) async {
-      // Prefernece table
-      await dbOnCreate.execute("""
+      await dbOnCreate.execute('''
         CREATE TABLE `data`(
           id INTEGER PRIMARY KEY AUTOINCREMENT,
 
@@ -18,7 +24,11 @@ class Prefs {
           value TEXT,
           valueType INTEGER
         );
-      """);
+      ''');
+
+      await dbOnCreate.execute('''
+        CREATE INDEX domainKeyIndex ON data(domain, key);
+      ''');
     });
 
     return Future.value(null);
@@ -57,10 +67,11 @@ class Prefs {
 
     // Persist
     return _db.transaction((Transaction txn) async {
+      var domainCond = _name == null ? 'domain IS ?' : 'domain=?';
       await txn.delete(
         'data',
-        where: "domain=? AND key REGEXP '^$key(\..*)?\$'",
-        whereArgs: [_name, key],
+        where: '$domainCond AND key like ?',
+        whereArgs: [_name, '$key%'],
       );
 
       await txn.insert(
@@ -103,12 +114,16 @@ class Prefs {
 
   // Utils
   static int _getValueType(Object value) {
-    if (value is int || value is double) {
-      return 1;
+    if (value is int) {
+      return intValueType;
+    } else if (value is double) {
+      return floatValueType;
     } else if (value is String) {
-      return 2;
+      return stringValueType;
+    // } else if (value is ) {
+    //   return binaryValueType;
     } else {
-      return 0;
+      return unknownValueType;
     }
   }
 }
