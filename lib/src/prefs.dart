@@ -9,14 +9,12 @@ class Prefs {
   static const String _spliter = '.';
 
   // Value type
-  static const int unknownValueType = 0;
   static const int intValueType = 1;
   static const int floatValueType = 2;
   static const int stringValueType = 3;
   static const int binaryValueType = 4;
 
   // Value column name
-  static const String unknownValueColumnName = 'unknownValue';
   static const String intValueColumnName = 'intValue';
   static const String floatValueColumnName = 'floatValue';
   static const String stringValueColumnName = 'stringValue';

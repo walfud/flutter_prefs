@@ -19,9 +19,6 @@ class ValueInfo {
       // } else if (value is ) {
 //      type = Prefs.intValueType;
 //      typeName = Prefs.intValueTypeName;
-    } else {
-      type = Prefs.unknownValueType;
-      columnName = Prefs.unknownValueColumnName;
     }
   }
 }
