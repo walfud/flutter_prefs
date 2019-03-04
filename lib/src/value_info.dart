@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import './prefs.dart';
 
 class ValueInfo {
@@ -16,9 +18,11 @@ class ValueInfo {
     } else if (value is String) {
       type = Prefs.stringValueType;
       columnName = Prefs.stringValueColumnName;
-      // } else if (value is ) {
-//      type = Prefs.intValueType;
-//      typeName = Prefs.intValueTypeName;
+    } else if (value is Uint8List) {
+      type = Prefs.intValueType;
+      columnName = Prefs.binaryValueColumnName;
+    } else {
+      throw new ArgumentError.value(value, 'type');
     }
   }
 }

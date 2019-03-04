@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:sqflite/sqflite.dart';
 import 'package:tuple/tuple.dart';
@@ -91,11 +92,11 @@ class Prefs {
         case stringValueType:
           _setCacheValue<String>(key, row[stringValueColumnName]);
           break;
-//        case binaryValueType:
-//          _setCacheValue<>(key, row[binaryValueColumnName]);
+        case binaryValueType:
+          _setCacheValue<Uint8List>(key, row[binaryValueColumnName]);
           break;
         default:
-          break;
+          throw new ArgumentError.value(valueType, 'valueType');
       }
     }
 
