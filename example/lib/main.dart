@@ -72,33 +72,29 @@ class _MyAppState extends State<MyApp> {
                     RaisedButton(
                       child: Text('Set'),
                       onPressed: () async {
-                        var start = DateTime.now();
-                        Future<void> res =
-                            _prefs.setValue(_inputKey, _inputValue);
-                        var end = DateTime.now();
+                        final start = DateTime.now();
+                        Future<void> res = _prefs.setValue(_inputKey, _inputValue);
+                        final end = DateTime.now();
                         await res;
-                        var awaitEnd = DateTime.now();
-                        var cost = end.microsecondsSinceEpoch -
-                            start.microsecondsSinceEpoch;
-                        var awaitCost = awaitEnd.microsecondsSinceEpoch -
-                            start.microsecondsSinceEpoch;
+                        final awaitEnd = DateTime.now();
+                        final cost = end.millisecondsSinceEpoch - start.millisecondsSinceEpoch;
+                        final awaitCost = awaitEnd.millisecondsSinceEpoch - start.millisecondsSinceEpoch;
                         setState(() {
                           _tips.add(
-                              'set: cost $cost microsecond, persist cost $awaitCost microsecond');
+                              'set: cost $cost ms, persist cost $awaitCost ms');
                         });
                       },
                     ),
                     RaisedButton(
                       child: Text('Get'),
                       onPressed: () {
-                        var start = DateTime.now();
-                        var res = _prefs.getValue(_inputKey);
-                        var end = DateTime.now();
-                        var cost = end.microsecondsSinceEpoch -
-                            start.microsecondsSinceEpoch;
+                        final start = DateTime.now();
+                        final res = _prefs.getValue(_inputKey);
+                        final end = DateTime.now();
+                        final cost = end.millisecondsSinceEpoch - start.millisecondsSinceEpoch;
                         setState(() {
-                          _output = res;
-                          _tips.add('get($res): cost: $cost microsecond');
+                          _output = res.toString();
+                          _tips.add('get: cost: $cost ms');
                         });
                       },
                     ),
@@ -116,7 +112,7 @@ class _MyAppState extends State<MyApp> {
             Expanded(
               child: ListView.separated(
                 itemBuilder: (BuildContext context, int index) {
-                  var tip = _tips[_tips.length - 1 - index];
+                  final tip = _tips[_tips.length - 1 - index];
                   return Text(tip);
                 },
                 separatorBuilder: (BuildContext context, int index) {
