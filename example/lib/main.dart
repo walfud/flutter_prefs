@@ -92,13 +92,14 @@ class _MyAppState extends State<MyApp> {
                     RaisedButton(
                       child: Text('Get'),
                       onPressed: () {
+                        int debugId = nextDebugId();
                         final start = DateTime.now();
                         final res = _prefs.getValue(_inputKey);
                         final end = DateTime.now();
                         final cost = end.millisecondsSinceEpoch - start.millisecondsSinceEpoch;
                         setState(() {
                           _output = res.toString();
-                          _tips.add('get: cost: $cost ms');
+                          _tips.add('$debugId'.padLeft(5) + ':' + 'get: cost: $cost ms');
                         });
                       },
                     ),

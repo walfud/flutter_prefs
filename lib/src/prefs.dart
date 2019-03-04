@@ -129,7 +129,9 @@ class Prefs {
               where: 'domain=? AND key like ?',
               whereArgs: [_name, '$key%'],
             );
-            safeDebugCall(debugId, 'set: db delete "$removedPostfixCount" postfix path');
+            if (removedPostfixCount > 0) {
+              safeDebugCall(debugId, 'set: db delete "$removedPostfixCount" postfix path');
+            }
 
             final valueInfo = new ValueInfo(value);
             final newId = await txn.insert(
