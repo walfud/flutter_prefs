@@ -5,6 +5,8 @@ import 'package:tuple/tuple.dart';
 
 import './value_info.dart';
 
+typedef void DebugListener(int id, String desc, [Object obj]);
+
 class Prefs {
   static const String _spliter = '.';
 
@@ -21,16 +23,23 @@ class Prefs {
   static const String binaryValueColumnName = 'binaryValue';
 
   // Factory
-  // We maintain a static instance map for both effeciency and consistency
+  // We maintain a static instance map for both efficiency and consistency
   static Map<String, Prefs> _instanceMap = {};
 
-  static Future<Prefs> defaultInstance() => getInstance();
+  static Future<Prefs> defaultInstance({int debugId}) => getInstance(debugId: debugId);
 
-  static Future<Prefs> getInstance([String name = '']) async {
+  static Future<Prefs> getInstance({
+    String name = '',
+    int debugId,
+  }) async {
     name = name ?? '';
     if (_instanceMap[name] == null) {
       _instanceMap[name] = new Prefs._internal(name);
       await _instanceMap[name]._initialize();
+
+      safeDebugCall(debugId, 'instance: create new instance "$name"');
+    } else {
+      safeDebugCall(debugId, 'instance: reuse "$name"');
     }
 
     return _instanceMap[name];
@@ -38,7 +47,6 @@ class Prefs {
 
   // Private constructor
   String _name;
-
   Prefs._internal(this._name);
 
   Database _db;
@@ -94,33 +102,36 @@ class Prefs {
     return Future.value(null);
   }
 
-  Future<T> setValue<T>(String key, T value) {
+  Future<T> setValue<T>(String key, T value, { int debugId }) {
     // Cache
-    final originValueAndRemovedKeys = _setCacheValue(key, value);
+    final originValueAndRemovedKeys = _setCacheValue(key, value, debugId: debugId);
     final removedPrefixPaths = originValueAndRemovedKeys.item1;
     final originValue = originValueAndRemovedKeys.item2;
+
     // Persist
     return originValue == value && removedPrefixPaths.isEmpty
         ? Future.value(null)
         : _db.transaction((Transaction txn) async {
             // Remove prefix path
-            await Future.forEach(
-                removedPrefixPaths,
-                (removedKey) => txn.delete(
-                      'data',
-                      where: 'domain=? AND key=?',
-                      whereArgs: [_name, removedKey],
-                    ));
+            if (removedPrefixPaths.isNotEmpty) {
+              final removedPrefixCount = await txn.delete(
+                'data',
+                where: 'domain=? AND key IN (?)',
+                whereArgs: [_name, removedPrefixPaths.join(',')],
+              );
+              safeDebugCall(debugId, 'set: db delete "$removedPrefixCount" prefix path');
+            }
 
             // Remove postfix path
-            await txn.delete(
+            final removedPostfixCount = await txn.delete(
               'data',
               where: 'domain=? AND key like ?',
               whereArgs: [_name, '$key%'],
             );
+            safeDebugCall(debugId, 'set: db delete "$removedPostfixCount" postfix path');
 
-            var valueInfo = new ValueInfo(value);
-            await txn.insert(
+            final valueInfo = new ValueInfo(value);
+            final newId = await txn.insert(
               'data',
               {
                 'domain': _name,
@@ -129,10 +140,11 @@ class Prefs {
                 valueInfo.columnName: value,
               },
             );
+            safeDebugCall(debugId, 'set: db insert row id "$newId"');
           });
   }
 
-  Tuple2<List<String>, Object> _setCacheValue<T>(String key, T value) {
+  Tuple2<List<String>, Object> _setCacheValue<T>(String key, T value, { int debugId }) {
     List<String> removedPrefixPaths = [];
 
     final pathAndLeaf = _parsePathAndLeaf(key);
@@ -190,5 +202,17 @@ class Prefs {
 
     final nodes = key.split(_spliter);
     return new Tuple2(nodes.sublist(0, nodes.length - 1), nodes.last);
+  }
+
+  // Debug
+  static DebugListener _debugListener;
+  static void setDebugListener(DebugListener listener) {
+    _debugListener = listener;
+  }
+
+  static void safeDebugCall(int id, String desc, [Object obj]) {
+    if (_debugListener != null) {
+      _debugListener(id, desc, obj);
+    }
   }
 }

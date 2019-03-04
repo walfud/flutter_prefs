@@ -20,16 +20,20 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
 
-    Prefs.defaultInstance().then((prefs) {
-      _prefs = prefs;
-
+    Prefs.setDebugListener((debugId, desc, [obj]) {
       setState(() {
-        _inputKey = 'foo';
-        _inputValue = '1234';
-
-        _tips.add('Start');
+        _tips.add('$debugId'.padLeft(5) + ':' + desc);
       });
     });
+    Prefs.defaultInstance(debugId: nextDebugId())
+        .then((prefs) {
+            _prefs = prefs;
+
+            setState(() {
+              _inputKey = 'foo';
+              _inputValue = '1234';
+            });
+        });
   }
 
   @override
@@ -72,16 +76,16 @@ class _MyAppState extends State<MyApp> {
                     RaisedButton(
                       child: Text('Set'),
                       onPressed: () async {
+                        int debugId = nextDebugId();
                         final start = DateTime.now();
-                        Future<void> res = _prefs.setValue(_inputKey, _inputValue);
+                        Future<void> res = _prefs.setValue(_inputKey, _inputValue, debugId: debugId);
                         final end = DateTime.now();
                         await res;
                         final awaitEnd = DateTime.now();
                         final cost = end.millisecondsSinceEpoch - start.millisecondsSinceEpoch;
                         final awaitCost = awaitEnd.millisecondsSinceEpoch - start.millisecondsSinceEpoch;
                         setState(() {
-                          _tips.add(
-                              'set: cost $cost ms, persist cost $awaitCost ms');
+                          _tips.add('$debugId'.padLeft(5) + ':' + 'set: cost $cost ms, persist cost $awaitCost ms');
                         });
                       },
                     ),
@@ -126,4 +130,8 @@ class _MyAppState extends State<MyApp> {
       ),
     );
   }
+
+  // Debug
+  static int _debugId = 0;
+  int nextDebugId() => ++_debugId;
 }
