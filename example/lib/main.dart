@@ -211,9 +211,11 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
-  void _onLibChange(LibMethodFactory factory) => setState(() {
-        _methodFactory = factory;
-      });
+  void _onLibChange(LibMethodFactory factory) {
+    setState(() {
+      _methodFactory = factory;
+    });
+  }
 
   // Debug
   static int _debugId = 0;
