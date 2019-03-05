@@ -93,8 +93,7 @@ class _MyAppState extends State<MyApp> {
       final initializeEndTime = DateTime.now();
       setState(() {
         int debugId = nextDebugId();
-        final cost = initializeEndTime.millisecondsSinceEpoch -
-            initializeStartTime.millisecondsSinceEpoch;
+        final cost = initializeEndTime.millisecondsSinceEpoch - initializeStartTime.millisecondsSinceEpoch;
         _tips.add(
             '$debugId'.padLeft(5) + ' -> ' + 'prefs initialize: cost "$cost" ms');
       });
