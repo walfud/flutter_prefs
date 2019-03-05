@@ -24,30 +24,33 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     _prefsMethodFactory = _methodFactory = new LibMethodFactory(
-      onSet: () async {
-        int debugId = nextDebugId();
-        final start = DateTime.now();
-        Future<void> res = _prefs
-            .setValue(_inputKey, _inputValue, debugId: debugId);
-        final end = DateTime.now();
-        await res;
-        final awaitEnd = DateTime.now();
-        setState(() {
-          final cost = end.millisecondsSinceEpoch - start.millisecondsSinceEpoch;
-          final awaitCost = awaitEnd.millisecondsSinceEpoch - start.millisecondsSinceEpoch;
-          _tips.add('$debugId'.padLeft(5) + ' -> ' + 'prefs set: cache cost $cost ms, persist cost $awaitCost ms');
+      onSet: () {
+        safeCallAsync(() async {
+          int debugId = nextDebugId();
+          final start = DateTime.now();
+          Future<void> res = _prefs.setValue(_inputKey, _inputValue, debugId: debugId);
+          final end = DateTime.now();
+          await res;
+          final awaitEnd = DateTime.now();
+          setState(() {
+            final cost = end.millisecondsSinceEpoch - start.millisecondsSinceEpoch;
+            final awaitCost = awaitEnd.millisecondsSinceEpoch - start.millisecondsSinceEpoch;
+            _tips.add('$debugId'.padLeft(5) + ' -> ' + 'prefs set: cache cost $cost ms, persist cost $awaitCost ms');
+          });
         });
       },
       onGet: () {
-        final start = DateTime.now();
-        final res = _prefs.getValue(_inputKey);
-        final end = DateTime.now();
-        setState(() {
-          _output = res.toString();
+        safeCall(() {
+          final start = DateTime.now();
+          final res = _prefs.getValue(_inputKey);
+          final end = DateTime.now();
+          setState(() {
+            _output = res.toString();
 
-          int debugId = nextDebugId();
-          final cost = end.millisecondsSinceEpoch - start.millisecondsSinceEpoch;
-          _tips.add('$debugId'.padLeft(5) + ' -> ' + 'prefs get: cost: $cost ms');
+            int debugId = nextDebugId();
+            final cost = end.millisecondsSinceEpoch - start.millisecondsSinceEpoch;
+            _tips.add('$debugId'.padLeft(5) + ' -> ' + 'prefs get: cost: $cost ms');
+          });
         });
       },
     );
@@ -55,8 +58,7 @@ class _MyAppState extends State<MyApp> {
       onSet: () async {
         int debugId = nextDebugId();
         final start = DateTime.now();
-        Future<void> res = _sharedPreferences.setString(
-            _inputKey, _inputValue);
+        Future<void> res = _sharedPreferences.setString(_inputKey, _inputValue);
         final end = DateTime.now();
         await res;
         final awaitEnd = DateTime.now();
@@ -215,6 +217,25 @@ class _MyAppState extends State<MyApp> {
     setState(() {
       _methodFactory = factory;
     });
+  }
+
+  void safeCall(Function func) {
+    try {
+      func();
+    } catch (err) {
+      setState(() {
+        _tips.add(err.toString());
+      });
+    }
+  }
+  void safeCallAsync(Function func) async {
+    try {
+      await func();
+    } catch (err) {
+      setState(() {
+        _tips.add(err.toString());
+      });
+    }
   }
 
   // Debug

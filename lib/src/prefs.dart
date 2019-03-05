@@ -103,7 +103,7 @@ class Prefs {
     return Future.value(null);
   }
 
-  Future<T> setValue<T>(String key, T value, { int debugId }) {
+  Future<bool> setValue<T>(String key, T value, { int debugId }) {
     // Cache
     final originValueAndRemovedKeys = _setCacheValue(key, value, debugId: debugId);
     final removedPrefixPaths = originValueAndRemovedKeys.item1;
@@ -111,7 +111,7 @@ class Prefs {
 
     // Persist
     return originValue == value && removedPrefixPaths.isEmpty
-        ? Future.value(null)
+        ? Future.value(true)
         : _db.transaction((Transaction txn) async {
             // Remove prefix path
             if (removedPrefixPaths.isNotEmpty) {
@@ -133,17 +133,23 @@ class Prefs {
               safeDebugCall(debugId, 'set: db delete "$removedPostfixCount" postfix path');
             }
 
-            final valueInfo = new ValueInfo(value);
-            final newId = await txn.insert(
-              'data',
-              {
-                'domain': _name,
-                'key': key,
-                'valueType': valueInfo.type,
-                valueInfo.columnName: value,
-              },
-            );
-            safeDebugCall(debugId, 'set: db insert row id "$newId"');
+            if (value != null) {
+              final valueInfo = new ValueInfo(value);
+              final newId = await txn.insert(
+                'data',
+                {
+                  'domain': _name,
+                  'key': key,
+                  'valueType': valueInfo.type,
+                  valueInfo.columnName: value,
+                },
+              );
+              safeDebugCall(debugId, 'set: db insert row id "$newId"');
+            }
+
+            return true;
+          }).catchError((err) {
+            return false;
           });
   }
 
@@ -174,7 +180,12 @@ class Prefs {
     // Mount value on leaf
     final leaf = pathAndLeaf.item2;
     final originValue = currTable[leaf];
-    currTable[leaf] = value;
+    if (value == null) {
+      // remove
+      currTable.remove(leaf);
+    } else {
+      currTable[leaf] = value;
+    }
 
     return new Tuple2(removedPrefixPaths, originValue);
   }
